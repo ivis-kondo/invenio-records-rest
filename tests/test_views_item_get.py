@@ -6,12 +6,14 @@
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
+# .tox/c1/bin/pytest --cov=invenio_records_rest tests/test_views_item_get.py -vv -s -v --cov-branch --cov-report=term --basetemp=/code/modules/invenio-records-rest/.tox/c1/tmp
+
 """Get record tests."""
 
 from __future__ import absolute_import, print_function
 
 from flask import url_for
-from helpers import get_json, record_url, to_relative_url
+from tests.helpers import get_json, record_url, to_relative_url
 
 
 def test_item_get(app, test_records):

@@ -22,6 +22,7 @@ def _(x):
     """Identity function for string extraction."""
     return x
 
+
 RECORDS_REST_ENDPOINTS = dict(
     recid=dict(
         pid_type='recid',
@@ -343,7 +344,8 @@ RECORDS_REST_DEFAULT_CREATE_PERMISSION_FACTORY = deny_all
 RECORDS_REST_DEFAULT_LIST_PERMISSION_FACTORY = allow_all
 """Default list permission factory: allow all requests"""
 
-RECORDS_REST_DEFAULT_READ_PERMISSION_FACTORY = check_elasticsearch
+RECORDS_REST_DEFAULT_READ_PERMISSION_FACTORY = \
+    'weko_records_ui.permissions:page_permission_factory'
 """Default read permission factory: check if the record exists."""
 
 RECORDS_REST_DEFAULT_UPDATE_PERMISSION_FACTORY = deny_all
@@ -366,3 +368,44 @@ RECORDS_REST_ELASTICSEARCH_ERROR_HANDLERS = {
 
 RECORDS_REST_DEFAULT_RESULTS_SIZE = 10
 """Default search results size."""
+
+RECORDS_REST_DEFAULT_MAPPING_KEY = {
+    'dc:title': None,
+    'dcterms:alternative': None,
+    'dc:type': None,
+    'dc:language': None,
+    'jpcoar:creator': None,
+    'jpcoar:identifier': None,
+    'datacite:description': None,
+    'jpcoar:volume': None,
+    'jpcoar:issue': None,
+    'jpcoar:pageStart': None,
+    'jpcoar:pageEnd': None,
+    'datacite:date': None,
+    'dc:publisher': None,
+}
+"""Dictionary mapping key default."""
+
+RECORDS_REST_DEFAULT_MAPPING_LANG = {
+    'dc:title__lang': None,
+    'dcterms:alternative__lang': None,
+    'dc:type__lang': None,
+    'dc:language__lang': None,
+    'jpcoar:creator__lang': None,
+    'jpcoar:identifier__lang': None,
+    'datacite:description__lang': None,
+    'jpcoar:volume__lang': None,
+    'jpcoar:issue__lang': None,
+    'jpcoar:pageStart__lang': None,
+    'jpcoar:pageEnd__lang': None,
+    'datacite:date__lang': None,
+    'dc:publisher__lang': None,
+}
+"""Dictionary mapping language default."""
+
+RECORDS_REST_DEFAULT_MAPPING_DICT = \
+    dict(RECORDS_REST_DEFAULT_MAPPING_KEY, **RECORDS_REST_DEFAULT_MAPPING_LANG)
+"""Dictionary mapping key and language default."""
+
+RECORDS_REST_DEFAULT_TTL_VALUE = 3600
+"""Default number of seconds for ttl value"""

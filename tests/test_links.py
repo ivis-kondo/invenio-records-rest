@@ -6,6 +6,7 @@
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
+# .tox/c1/bin/pytest --cov=invenio_records_rest tests/test_links.py -vv -s -v --cov-branch --cov-report=term --basetemp=/code/modules/invenio-records-rest/.tox/c1/tmp
 
 """Link factory tests."""
 
@@ -14,7 +15,7 @@ from __future__ import absolute_import, print_function
 import copy
 
 import pytest
-from helpers import create_record, get_json, record_url
+from tests.helpers import create_record, get_json, record_url
 
 from invenio_records_rest.config import RECORDS_REST_ENDPOINTS
 from invenio_records_rest.links import default_links_factory_with_additional

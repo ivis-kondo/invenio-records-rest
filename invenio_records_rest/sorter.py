@@ -20,10 +20,12 @@ https://www.elastic.co/guide/en/elasticsearch/reference/2.4/search-request-sort.
 
 from __future__ import absolute_import, print_function
 
-import copy
+import pickle
 
 import six
 from flask import current_app, request
+
+from .config import RECORDS_REST_DEFAULT_SORT
 
 
 def geolocation_sort(field_name, argument, unit, mode=None,
@@ -79,11 +81,12 @@ def reverse_order(order_value):
     return None
 
 
-def eval_field(field, asc):
+def eval_field(field, asc, nested_sorting=None):
     """Evaluate a field for sorting purpose.
 
     :param field: Field definition (string, dict or callable).
     :param asc: ``True`` if order is ascending, ``False`` if descending.
+    :param nested_sorting: nested_sorting definition (dict or None).
     :returns: Dictionary with the sort field query.
     """
     if isinstance(field, dict):
@@ -91,7 +94,7 @@ def eval_field(field, asc):
             return field
         else:
             # Field should only have one key and must have an order subkey.
-            field = copy.deepcopy(field)
+            field = pickle.loads(pickle.dumps(field, -1))
             key = list(field.keys())[0]
             field[key]['order'] = reverse_order(field[key]['order'])
             return field
@@ -101,7 +104,20 @@ def eval_field(field, asc):
         key, key_asc = parse_sort_field(field)
         if not asc:
             key_asc = not key_asc
-        return {key: {'order': 'asc' if key_asc else 'desc'}}
+
+        sorting = {key: {'order': 'asc' if key_asc else 'desc',
+                         'unmapped_type': 'long'}}
+
+        current_app.logger.debug(key)
+        if "date_range" in key:
+            sorting = {"_script":{"type":"number",
+            "script":{"lang":"painless","source":"def x = params._source.date_range1;Date dt = new Date();if (x != null && x instanceof List) { if (x[0] != null && x[0] instanceof Map){ def st = x[0].getOrDefault(\"gte\",\"\");SimpleDateFormat format = new SimpleDateFormat();if (st.length()>7) {format.applyPattern(\"yyyy-MM-dd\");}else if (st.length()>4){format.applyPattern(\"yyyy-MM\");}else if (st.length()==4){format.applyPattern(\"yyyy\");} try { dt = format.parse(st);} catch (Exception e){}}} return dt.getTime()"},"order": 'asc' if key_asc else 'desc'}}
+        if "control_number" in key:
+            sorting = {"_script":{"type":"number", "script": "Float.parseFloat(doc['control_number'].value)", "order": "asc" if key_asc else "desc"}}
+
+        if nested_sorting:
+            sorting[key].update({'nested': nested_sorting})
+        return sorting
 
 
 def default_sorter_factory(search, index):
@@ -118,9 +134,12 @@ def default_sorter_factory(search, index):
     if not urlfield:
         # cast to six.text_type to handle unicodes in Python 2
         has_query = request.values.get('q', type=six.text_type)
-        urlfield = current_app.config['RECORDS_REST_DEFAULT_SORT'].get(
-            index, {}).get('query' if has_query else 'noquery', '')
-
+        if current_app.config.get('RECORDS_REST_DEFAULT_SORT'):
+            urlfield = current_app.config['RECORDS_REST_DEFAULT_SORT'].get(
+                index, {}).get('query' if has_query else 'noquery', '')
+        else:
+            urlfield = RECORDS_REST_DEFAULT_SORT.get(
+                index, {}).get('query' if has_query else 'noquery', '')
     # Parse sort argument
     key, asc = parse_sort_field(urlfield)
 
@@ -131,7 +150,15 @@ def default_sorter_factory(search, index):
         return (search, {})
 
     # Get fields to sort query by
+    sort_field = [eval_field(f, asc, sort_options.get('nested'))
+          for f in sort_options['fields']]
+    if key != 'controlnumber':
+        control_number_option = current_app.config['RECORDS_REST_SORT_OPTIONS'].get(index,{}).get('controlnumber')
+        if control_number_option is not None:
+            sort_field.append(eval_field(
+                control_number_option['fields'][0],'asc',control_number_option.get('nested')
+            ))
     search = search.sort(
-        *[eval_field(f, asc) for f in sort_options['fields']]
+        *sort_field,
     )
     return (search, {sort_arg_name: urlfield})
